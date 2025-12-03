@@ -300,33 +300,6 @@ def test_fail_on_multiple_drivers():
         extract_db_type_from_uri("mysql+pymsql+pyodbc://...")
 
 
-@pytest.fixture(scope="module")
-def cached_db(tmp_path_factory) -> Path:
-    """Creates and caches a SQLite database to avoid repeated migrations for each test run."""
-    tmp_path = tmp_path_factory.mktemp("sqlite_db")
-    db_path = tmp_path / "mlflow.db"
-    db_uri = f"sqlite:///{db_path}"
-    store = SqlAlchemyStore(db_uri, ARTIFACT_URI)
-    store.engine.dispose()
-    return db_path
-
-
-@pytest.fixture
-def store(tmp_path: Path, cached_db: Path) -> SqlAlchemyStore:
-    artifact_uri = tmp_path / "artifacts"
-    artifact_uri.mkdir(exist_ok=True)
-    if db_uri_env := MLFLOW_TRACKING_URI.get():
-        s = SqlAlchemyStore(db_uri_env, artifact_uri.as_uri())
-        yield s
-        _cleanup_database(s)
-    else:
-        db_path = tmp_path / "mlflow.db"
-        shutil.copy(cached_db, db_path)
-        db_uri = f"sqlite:///{db_path}"
-        s = SqlAlchemyStore(db_uri, artifact_uri.as_uri())
-        yield s
-
-
 @pytest.fixture
 def store_and_trace_info(store):
     exp_id = store.create_experiment("test")
